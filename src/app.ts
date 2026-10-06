@@ -17,12 +17,21 @@ import { PrismaUsagesRepository } from './modules/usages/usages.repository';
 import { usagesRoutes } from './modules/usages/usages.routes';
 import { UsagesService } from './modules/usages/usages.service';
 import { errorHandler, notFoundHandler } from './shared/middlewares/errorHandler';
+import { createRateLimiter, type RateLimitOptions } from './shared/middlewares/rateLimiter';
+
+export type AppOptions = {
+  rateLimit?: RateLimitOptions;
+  /** Quantidade de proxies confiáveis à frente da API (ex.: 1 no Render/Railway), para obter o IP real */
+  trustProxy?: number;
+};
+
+const DEFAULT_RATE_LIMIT: RateLimitOptions = { windowMs: 60_000, max: 100 };
 
 /**
  * Monta a aplicação Express. Recebe o PrismaClient por parâmetro (composition root),
  * o que permite subir a app nos testes sem depender de um banco real.
  */
-export function createApp(prisma: PrismaClient) {
+export function createApp(prisma: PrismaClient, options: AppOptions = {}) {
   const carsRepository = new PrismaCarsRepository(prisma);
   const driversRepository = new PrismaDriversRepository(prisma);
   const usagesRepository = new PrismaUsagesRepository(prisma);
@@ -34,10 +43,12 @@ export function createApp(prisma: PrismaClient) {
   );
 
   const app = express();
+  app.set('trust proxy', options.trustProxy ?? 0);
 
   // CSP desativada apenas para o Swagger UI carregar seus assets inline.
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors());
+  app.use(createRateLimiter(options.rateLimit ?? DEFAULT_RATE_LIMIT));
   app.use(express.json());
 
   app.get('/', (_req, res) => res.redirect('/docs'));

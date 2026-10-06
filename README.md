@@ -57,6 +57,9 @@ npm run test:coverage
 | `DATABASE_URL` | Conexão usada pela aplicação                                                         | `postgresql://postgres:postgres@localhost:5432/ttp?schema=public` |
 | `DIRECT_URL`   | Conexão direta usada pelas migrations (local: igual à `DATABASE_URL`)                | idem                                                         |
 | `SEED`         | Só no container: `true` popula o banco com dados de exemplo ao iniciar               | `true`                                                       |
+| `RATE_LIMIT_WINDOW_MS` | Janela do rate limit, em ms                                                  | `60000`                                                      |
+| `RATE_LIMIT_MAX` | Máximo de requisições por IP dentro da janela                                      | `100`                                                        |
+| `TRUST_PROXY`  | Quantidade de proxies à frente da API, para o rate limit usar o IP real (`1` no Render/Railway) | `0`                                               |
 
 ### Supabase
 
@@ -69,7 +72,7 @@ DATABASE_URL="postgresql://postgres.<ref>:<senha>@aws-0-<regiao>.pooler.supabase
 DIRECT_URL="postgresql://postgres.<ref>:<senha>@aws-0-<regiao>.pooler.supabase.com:5432/postgres"
 ```
 
-O deploy usa a mesma imagem Docker (Render, Railway, Fly.io etc.): basta configurar essas duas variáveis. Ao iniciar, o container roda `prisma migrate deploy` antes de subir a API.
+O deploy usa a mesma imagem Docker (Render, Railway, Fly.io etc.): basta configurar essas duas variáveis e `TRUST_PROXY=1`. Ao iniciar, o container roda `prisma migrate deploy` antes de subir a API.
 
 ---
 
@@ -95,7 +98,7 @@ Todos os corpos são JSON. A documentação completa, com exemplos, está no **S
 | `GET`    | `/health`                  | Health check                                                             |
 
 **Erros** seguem sempre o formato `{ "error": { "message": "...", "details": { ... } } }`:
-`400` para dados inválidos, `404` para recurso inexistente e `409` para regra de negócio violada (carro em uso, motorista ocupado, placa duplicada, utilização já finalizada, exclusão de registro com histórico).
+`400` para dados inválidos, `404` para recurso inexistente, `409` para regra de negócio violada (carro em uso, motorista ocupado, placa duplicada, utilização já finalizada, exclusão de registro com histórico) e `429` para limite de requisições excedido.
 
 ### Postman
 
@@ -127,6 +130,7 @@ tests/                testes unitários (services) e de HTTP
 
 - **Camadas com injeção de dependência:** os services dependem de *interfaces* de repositório. Por isso os testes unitários usam mocks e rodam sem banco.
 - **Regra de negócio garantida em dois níveis:** o service valida e retorna `409` com uma mensagem clara. Além disso, a migration cria **índices únicos parciais** (`UNIQUE (car_id) WHERE ended_at IS NULL` e o equivalente para `driver_id`). Com isso, nem requisições simultâneas conseguem deixar o mesmo carro ou motorista em duas utilizações ativas.
+- **Rate limit por IP em todas as rotas** (padrão: 100 requisições por minuto, configurável). Como a API é pública e não tem login, o IP é a única chave disponível para identificar o cliente. O contador fica em memória, o que basta para uma instância. Com várias réplicas, o próximo passo seria guardar o contador no Redis.
 - **Histórico preservado:** automóveis e motoristas que já têm utilizações não podem ser excluídos (`409`).
 - **Placas normalizadas:** `abc-1234` vira `ABC1234`. São aceitos o padrão antigo e o Mercosul (`ABC1D23`).
 - **Datas:** `startedAt` e `endedAt` são opcionais (padrão: agora). O início não pode estar no futuro, e o término não pode ser anterior ao início.

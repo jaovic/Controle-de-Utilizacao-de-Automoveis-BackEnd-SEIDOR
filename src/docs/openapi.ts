@@ -27,7 +27,9 @@ export const openApiDocument = {
     description:
       'API para cadastro de automóveis e motoristas e controle da utilização dos automóveis.\n\n' +
       '**Regras de negócio:** um automóvel só pode ser utilizado por um motorista por vez, ' +
-      'e um motorista que já esteja utilizando um automóvel não pode utilizar outro ao mesmo tempo.',
+      'e um motorista que já esteja utilizando um automóvel não pode utilizar outro ao mesmo tempo.\n\n' +
+      '**Rate limit:** todas as rotas são limitadas por IP (padrão: 100 requisições por minuto). ' +
+      'Ao exceder, a API responde `429` com os headers `RateLimit` e `Retry-After`.',
   },
   servers: [{ url: '/', description: 'Servidor atual' }],
   tags: [
@@ -256,3 +258,12 @@ export const openApiDocument = {
     },
   },
 };
+
+// Todas as rotas passam pelo rate limit: adiciona a resposta 429 em cada operação.
+const tooManyRequests = response('Limite de requisições excedido para este IP', ref('Error'));
+type Operation = { responses?: Record<string, unknown> };
+for (const pathItem of Object.values(openApiDocument.paths) as Record<string, Operation>[]) {
+  for (const operation of Object.values(pathItem)) {
+    if (operation.responses) operation.responses[429] = tooManyRequests;
+  }
+}
