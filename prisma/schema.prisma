@@ -1,0 +1,54 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Car {
+  id        String     @id @default(uuid()) @db.Uuid
+  plate     String     @unique
+  color     String
+  brand     String
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  usages    CarUsage[]
+
+  @@map("cars")
+}
+
+model Driver {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  usages    CarUsage[]
+
+  @@map("drivers")
+}
+
+/// Registro de utilização de um automóvel por um motorista.
+/// endedAt nulo significa que a utilização ainda está em andamento.
+/// A migration cria índices únicos parciais (car_id / driver_id WHERE ended_at IS NULL)
+/// para garantir no banco que carro e motorista tenham no máximo uma utilização ativa.
+model CarUsage {
+  id        String    @id @default(uuid()) @db.Uuid
+  carId     String    @map("car_id") @db.Uuid
+  driverId  String    @map("driver_id") @db.Uuid
+  startedAt DateTime  @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+  reason    String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  car    Car    @relation(fields: [carId], references: [id], onDelete: Restrict)
+  driver Driver @relation(fields: [driverId], references: [id], onDelete: Restrict)
+
+  @@index([carId])
+  @@index([driverId])
+  @@map("car_usages")
+}
