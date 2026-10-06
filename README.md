@@ -4,8 +4,7 @@ WebAPI em Node.js para controlar o uso dos automóveis de uma empresa: cadastro 
 
 **Regras de negócio:** um automóvel só pode ser usado por um motorista por vez, e um motorista que já está usando um automóvel não pode usar outro ao mesmo tempo.
 
-- **Deploy:** `https://SUA-URL-DE-DEPLOY` · Swagger em `/docs`
-- **Stack:** Node 20 · TypeScript · Express 5 · Prisma · PostgreSQL (Supabase em produção) · Zod · Jest · Docker
+- **Stack:** Node 20 · TypeScript · Express 5 · Prisma · PostgreSQL · Zod · Jest · Docker
 
 ---
 
@@ -33,7 +32,7 @@ Para parar, use `docker compose down`. Para apagar também os dados, use `docker
 Pré-requisitos: Node 20+ e um Postgres acessível. Para usar só o banco do compose, rode `docker compose up -d db`.
 
 ```bash
-cp .env.example .env      # ajuste DATABASE_URL/DIRECT_URL se necessário
+cp .env.example .env      # ajuste DATABASE_URL se necessário
 npm install
 npx prisma migrate deploy # cria as tabelas
 npm run seed              # opcional: dados de exemplo
@@ -55,24 +54,10 @@ npm run test:coverage
 | -------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
 | `PORT`         | Porta HTTP                                                                           | `3333`                                                       |
 | `DATABASE_URL` | Conexão usada pela aplicação                                                         | `postgresql://postgres:postgres@localhost:5432/ttp?schema=public` |
-| `DIRECT_URL`   | Conexão direta usada pelas migrations (local: igual à `DATABASE_URL`)                | idem                                                         |
 | `SEED`         | Só no container: `true` popula o banco com dados de exemplo ao iniciar               | `true`                                                       |
 | `RATE_LIMIT_WINDOW_MS` | Janela do rate limit, em ms                                                  | `60000`                                                      |
 | `RATE_LIMIT_MAX` | Máximo de requisições por IP dentro da janela                                      | `100`                                                        |
-| `TRUST_PROXY`  | Quantidade de proxies à frente da API, para o rate limit usar o IP real (`1` no Render/Railway) | `0`                                               |
-
-### Supabase
-
-No painel do Supabase, abra **Connect**. Lá ficam as duas strings de conexão:
-
-```env
-# Transaction pooler (porta 6543), usada pela API
-DATABASE_URL="postgresql://postgres.<ref>:<senha>@aws-0-<regiao>.pooler.supabase.com:6543/postgres?pgbouncer=true"
-# Conexão direta / session pooler (porta 5432), usada pelas migrations
-DIRECT_URL="postgresql://postgres.<ref>:<senha>@aws-0-<regiao>.pooler.supabase.com:5432/postgres"
-```
-
-O deploy usa a mesma imagem Docker (Render, Railway, Fly.io etc.): basta configurar essas duas variáveis e `TRUST_PROXY=1`. Ao iniciar, o container roda `prisma migrate deploy` antes de subir a API.
+| `TRUST_PROXY`  | Quantidade de proxies à frente da API, para o rate limit usar o IP real (`1` atrás de um proxy reverso) | `0`                                               |
 
 ---
 
@@ -105,7 +90,7 @@ Todos os corpos são JSON. A documentação completa, com exemplos, está no **S
 Importe os arquivos da pasta [`postman/`](postman):
 
 - `TTP.postman_collection.json`: todas as requisições, incluindo os cenários de erro
-- `local.postman_environment.json` / `production.postman_environment.json`: definem `baseUrl`
+- `local.postman_environment.json`: define `baseUrl` (`http://localhost:3333`)
 
 Rodando a coleção inteira (**Run collection**), o fluxo completo é executado. Os ids criados ficam salvos em variáveis e as placas são aleatórias, então dá para rodar várias vezes.
 

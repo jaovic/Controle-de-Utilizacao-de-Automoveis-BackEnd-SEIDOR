@@ -21,7 +21,7 @@ import { createRateLimiter, type RateLimitOptions } from './shared/middlewares/r
 
 export type AppOptions = {
   rateLimit?: RateLimitOptions;
-  /** Quantidade de proxies confiáveis à frente da API (ex.: 1 no Render/Railway), para obter o IP real */
+  /** Quantidade de proxies confiáveis à frente da API (ex.: 1 atrás de um proxy reverso), para obter o IP real */
   trustProxy?: number;
 };
 
