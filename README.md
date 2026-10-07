@@ -15,8 +15,8 @@ WebAPI em Node.js para controlar o uso dos automóveis de uma empresa: cadastro 
 Pré-requisito: Docker com Docker Compose.
 
 ```bash
-git clone <url-do-repositorio> ttp-backend
-cd ttp-backend
+git clone https://github.com/jaovic/Controle-de-Utilizacao-de-Automoveis-BackEnd-SEIDOR.git
+cd Controle-de-Utilizacao-de-Automoveis-BackEnd-SEIDOR
 docker compose up --build
 ```
 
@@ -42,7 +42,7 @@ npm run dev               # http://localhost:3333
 ### Testes
 
 ```bash
-npm test                 # testes unitários e de HTTP (não precisam de banco)
+npm test                 # 41 testes unitários e de HTTP (não precisam de banco)
 npm run test:coverage
 ```
 
